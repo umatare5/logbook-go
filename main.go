@@ -167,7 +167,7 @@ func NewGetAdminHealthRequest(server string) (*http.Request, error) {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/admin/health")
+	operationPath := fmt.Sprintf("/api/v1/admin/health")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -194,7 +194,7 @@ func NewGetAdminTokensRequest(server string) (*http.Request, error) {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/admin/tokens")
+	operationPath := fmt.Sprintf("/api/v1/admin/tokens")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -228,7 +228,7 @@ func NewGetDivelogRequest(server string, divelogId string) (*http.Request, error
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/divelog/%s", pathParam0)
+	operationPath := fmt.Sprintf("/api/v1/divelog/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -255,7 +255,7 @@ func NewGetDivelogsRequest(server string, params *GetDivelogsParams) (*http.Requ
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/divelogs")
+	operationPath := fmt.Sprintf("/api/v1/divelogs")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
