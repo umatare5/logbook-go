@@ -100,9 +100,6 @@ type ClientInterface interface {
 	// GetAdminHealth request
 	GetAdminHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetAdminTokens request
-	GetAdminTokens(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// GetDivelog request
 	GetDivelog(ctx context.Context, divelogId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -112,18 +109,6 @@ type ClientInterface interface {
 
 func (c *Client) GetAdminHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetAdminHealthRequest(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetAdminTokens(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetAdminTokensRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -168,33 +153,6 @@ func NewGetAdminHealthRequest(server string) (*http.Request, error) {
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/admin/health")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetAdminTokensRequest generates requests for GetAdminTokens
-func NewGetAdminTokensRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/admin/tokens")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -355,9 +313,6 @@ type ClientWithResponsesInterface interface {
 	// GetAdminHealth request
 	GetAdminHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAdminHealthResponse, error)
 
-	// GetAdminTokens request
-	GetAdminTokensWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAdminTokensResponse, error)
-
 	// GetDivelog request
 	GetDivelogWithResponse(ctx context.Context, divelogId string, reqEditors ...RequestEditorFn) (*GetDivelogResponse, error)
 
@@ -391,42 +346,6 @@ func (r GetAdminHealthResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetAdminHealthResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetAdminTokensResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *struct {
-		Code    *string `json:"code,omitempty"`
-		Message *string `json:"message,omitempty"`
-		Tokens  *[]struct {
-			AccessToken *string `json:"access_token,omitempty"`
-			Expired     *bool   `json:"expired,omitempty"`
-		} `json:"tokens,omitempty"`
-	}
-	JSONDefault *struct {
-		// Error code
-		Code *string `json:"code,omitempty"`
-
-		// Error message
-		Message *string `json:"message,omitempty"`
-	}
-}
-
-// Status returns HTTPResponse.Status
-func (r GetAdminTokensResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetAdminTokensResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -658,15 +577,6 @@ func (c *ClientWithResponses) GetAdminHealthWithResponse(ctx context.Context, re
 	return ParseGetAdminHealthResponse(rsp)
 }
 
-// GetAdminTokensWithResponse request returning *GetAdminTokensResponse
-func (c *ClientWithResponses) GetAdminTokensWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAdminTokensResponse, error) {
-	rsp, err := c.GetAdminTokens(ctx, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetAdminTokensResponse(rsp)
-}
-
 // GetDivelogWithResponse request returning *GetDivelogResponse
 func (c *ClientWithResponses) GetDivelogWithResponse(ctx context.Context, divelogId string, reqEditors ...RequestEditorFn) (*GetDivelogResponse, error) {
 	rsp, err := c.GetDivelog(ctx, divelogId, reqEditors...)
@@ -703,52 +613,6 @@ func ParseGetAdminHealthResponse(rsp *http.Response) (*GetAdminHealthResponse, e
 		var dest struct {
 			Code    *string `json:"code,omitempty"`
 			Message *string `json:"message,omitempty"`
-		}
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest struct {
-			// Error code
-			Code *string `json:"code,omitempty"`
-
-			// Error message
-			Message *string `json:"message,omitempty"`
-		}
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetAdminTokensResponse parses an HTTP response from a GetAdminTokensWithResponse call
-func ParseGetAdminTokensResponse(rsp *http.Response) (*GetAdminTokensResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetAdminTokensResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Code    *string `json:"code,omitempty"`
-			Message *string `json:"message,omitempty"`
-			Tokens  *[]struct {
-				AccessToken *string `json:"access_token,omitempty"`
-				Expired     *bool   `json:"expired,omitempty"`
-			} `json:"tokens,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
